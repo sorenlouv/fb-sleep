@@ -16,7 +16,6 @@
   },
   "homepage": "https://github.com/sqren/fb-sleep#readme",
   "dependencies": {
-    "cheerio": "^0.19.0",
     "lodash": "^3.10.1",
     "lowdb": "^0.11.2",
     "request-promise": "^1.0.2"

@@ -1,5 +1,4 @@
 var request = require('request-promise');
-var cheerio = require('cheerio');
 var _ = require('lodash');
 var database = require('./database');
 var db = database.get();
@@ -7,7 +6,7 @@ var RECENTLY_ACTIVE_DURATION = 1000 * 60 * 10; // 10 minutes
 
 var service = {};
 service.scrape = function(config) {
-    getAndSaveUsers(config);
+    getAndSaveUsers(config, RECENTLY_ACTIVE_DURATION);
 };
 
 service.getUsers = function() {
@@ -15,15 +14,15 @@ service.getUsers = function() {
     return db('posts').cloneDeep();
 };
 
-function getAndSaveUsers(config) {
-    getRecentlyActiveUsers(config)
+function getAndSaveUsers(config, timeSinceLastCheck) {
+    getRecentlyActiveUsers(config, timeSinceLastCheck)
         .then(function(users) {
             console.log(new Date().toLocaleString(), ' - ', users.length, 'active users');
             return saveUsers(users);
         })
         .then(function() {
             var delay = _.random(RECENTLY_ACTIVE_DURATION * 0.9, RECENTLY_ACTIVE_DURATION);
-            setTimeout(getAndSaveUsers.bind(null, config), delay);
+            setTimeout(getAndSaveUsers.bind(null, config, delay), delay);
         })
         .done();
 }
@@ -50,9 +49,6 @@ function getCookieJar(config, domain) {
     return jar;
 }
 
-// curl 'https://www.facebook.com/?_rdr'
-// -H 'cookie: c_user=641870264; xs=239%3APGhxJwBYzlr7GQ;'
-// -s | w3m -dump -T text/html
 var getFbDtsg = _.memoize(function(config) {
     var jar = getCookieJar(config, 'https://www.facebook.com');
     return request({
@@ -72,9 +68,6 @@ var getFbDtsg = _.memoize(function(config) {
         });
 });
 
-// curl 'https://www.messenger.com/ajax/chat/buddy_list.php'
-// -H 'cookie: c_user=641870264; xs=52%3ANXM8o8J2m9bMbg%3A2%3A1451565532%3A13273;'
-// --data ''
 function getLastActiveTimes(config) {
     return getFbDtsg(config)
         .then(function(fbDtsg) {
@@ -100,53 +93,21 @@ function getLastActiveTimes(config) {
         });
 }
 
-function getRecentlyActiveUsers(config) {
+function getRecentlyActiveUsers(config, timeSinceLastCheck) {
     return getLastActiveTimes(config)
         .then(function(lastActiveTimes) {
             return _(lastActiveTimes)
                 .pairs()
                 .filter(function(user) {
                     var lastActive = user[1];
-                    var diff = Date.now() - lastActive * 1000;
-                    return diff < RECENTLY_ACTIVE_DURATION;
+                    var timeSinceActive = Date.now() - lastActive * 1000;
+                    return timeSinceActive <= timeSinceLastCheck;
                 })
                 .map(function(user) {
                     var userId = user[0];
                     return userId;
                 })
                 .value();
-        });
-}
-
-// curl 'https://m.facebook.com/buddylist.php' -H 'cookie: c_user=<c_user>; xs=<xs>;'
-//  -s | w3m -dump -T text/html
-function fetchActiveUsers(config) {
-    var jar = getCookieJar(config, 'https://m.facebook.com');
-
-    return request({
-            url: 'https://m.facebook.com/buddylist.php',
-            jar: jar,
-            gzip: true,
-        })
-        .then(function(body) {
-            var AWAY_ICON = 'https://static.xx.fbcdn.net/rsrc.php/v2/yX/r/FSqa1Nyk3nd.png';
-            var $ = cheerio.load(body);
-            var elements = $('.l.bq.br');
-            var activeUsers = elements
-                .filter(function() {
-                    return $(this).find('img').attr('src') !== AWAY_ICON;
-                })
-                .map(function() {
-                    var href = $(this).find('a').attr('href');
-                    return /fbid=(\d+)/g.exec(href)[1];
-                })
-                .toArray();
-
-            return activeUsers;
-        })
-        .catch(function(error) {
-            console.error(new Error(error));
-            throw error;
         });
 }
 
