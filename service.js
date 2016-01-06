@@ -11,7 +11,7 @@ service.scrape = function(config) {
 
 service.getUsers = function() {
     var db = database.get();
-    return db('posts').cloneDeep();
+    return db('users').cloneDeep();
 };
 
 function getAndSaveUsers(config, timeSinceLastCheck) {
@@ -28,10 +28,15 @@ function getAndSaveUsers(config, timeSinceLastCheck) {
 }
 
 function saveUsers(users) {
-    return db('posts').push({
-        users: users,
-        time: Date.now(),
+    db('updates').push(Date.now());
+
+    users.forEach(function(user) {
+        if (!db.object.users[user.userId]) {
+            db.object.users[user.userId] = [];
+        }
+        db.object.users[user.userId].push(user.timestamp);
     });
+    db.write();
 }
 
 function getCookieJar(config, domain) {
@@ -104,28 +109,41 @@ function getRecentlyActiveUsers(config, timeSinceLastCheck) {
                     return timeSinceActive <= timeSinceLastCheck;
                 })
                 .map(function(user) {
-                    var userId = user[0];
-                    return userId;
+                    return {
+                        userId: user[0],
+                        timestamp: user[1]
+                    };
                 })
                 .value();
         });
 }
 
-service.reducePosts = function() {
-    service.getUsers().then(function(posts) {
-        var reducedPosts = posts.reduce(function(memo, post) {
-            var DURATION = 1000 * 60 * 10; // 10 minutes
-            var current = _.last(memo);
-            if (!current || (current.time + DURATION) < post.time) {
-                memo.push(post);
-            } else {
-                current.users = _.union(current.users, post.users);
-            }
-            return memo;
-        }, []);
+service.refactorPosts = function() {
+    var usersPromise = db('posts').cloneDeep();
+    usersPromise.then(function(posts) {
+        var users = posts.reduce(function(memo, post) {
+            var timestamp = post.time;
+            post.users.forEach(function(user) {
+                if (!memo[user]) {
+                    memo[user] = [];
+                }
+                memo[user].push(timestamp);
+            });
 
-        db.object.posts = reducedPosts;
+            return memo;
+        }, {});
+
+        var usersDb = _.reduce(users, function(memo, timestamps, userId) {
+            memo[userId] = timestamps;
+            return memo;
+        }, {});
+
+        db.object.users = usersDb;
+
+        db.object.updates = _.map(posts, 'time');
+        delete db.object.posts;
         db.write();
+        console.log('DB refactored!');
     });
 };
 
