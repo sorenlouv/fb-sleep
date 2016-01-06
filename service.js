@@ -111,7 +111,7 @@ function getRecentlyActiveUsers(config, timeSinceLastCheck) {
                 .map(function(user) {
                     return {
                         userId: user[0],
-                        timestamp: user[1]
+                        timestamp: user[1] * 1000
                     };
                 })
                 .value();
