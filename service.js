@@ -30,6 +30,10 @@ function getAndSaveUsers(config, timeSinceLastCheck) {
 function saveUsers(users) {
     db('updates').push(Date.now());
 
+    if (!db.object.users) {
+        db.object.users = {};
+    }
+
     users.forEach(function(user) {
         if (!db.object.users[user.userId]) {
             db.object.users[user.userId] = [];
