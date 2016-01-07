@@ -1,8 +1,48 @@
 {
-    "preset": "node-style-guide",
-    "maximumLineLength": 100,
-    "requireCapitalizedComments": false,
-    "validateIndentation": 4,
+    "disallowEmptyBlocks": true,
+    "disallowKeywordsOnNewLine": [
+        "else"
+    ],
+    "disallowMixedSpacesAndTabs": true,
+    "disallowMultipleLineStrings": true,
+    "disallowNewlineBeforeBlockStatements": true,
+    "disallowOperatorBeforeLineBreak": [
+        "."
+    ],
+    "disallowPaddingNewlinesInBlocks": true,
+    "disallowQuotedKeysInObjects": "allButReserved",
+    "requireSpaceBeforeBinaryOperators": true,
+    "disallowSpaceAfterObjectKeys": true,
+    "disallowSpaceAfterPrefixUnaryOperators": true,
+    "disallowSpaceBeforePostfixUnaryOperators": [
+        "++",
+        "--"
+    ],
+    "disallowSpacesInAnonymousFunctionExpression": {
+        "beforeOpeningRoundBrace": true
+    },
+    "disallowSpacesInCallExpression": true,
+    "disallowSpacesInFunctionDeclaration": {
+        "beforeOpeningRoundBrace": true
+    },
+    "disallowSpacesInFunctionExpression": {
+        "beforeOpeningRoundBrace": true
+    },
+    "disallowSpacesInNamedFunctionExpression": {
+        "beforeOpeningRoundBrace": true
+    },
+    "disallowSpacesInsideObjectBrackets": "all",
+    "disallowSpacesInsideArrayBrackets": "nested",
+    "disallowTrailingWhitespace": true,
+    "disallowYodaConditions": true,
+    "requireBlocksOnNewline": 1,
     "requireCamelCaseOrUpperCaseIdentifiers": false,
-    "requireTrailingComma": false
+    "requireCapitalizedConstructors": true,
+    "requireDotNotation": true,
+    "requireLineBreakAfterVariableAssignment": true,
+    "requireLineFeedAtFileEnd": true,
+    "disallowMultipleVarDecl": "exceptUndefined",
+    "validateIndentation": 4,
+    "validateParameterSeparator": ", ",
+    "validateQuoteMarks": "'"
 }
