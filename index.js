@@ -43,7 +43,7 @@ fbSleep.getLastActiveTimes = function(config) {
     });
 };
 
-fbSleep.getRecentlyActiveUsers = function(config, timeSinceLastCheck) {
+fbSleep.getRecentlyActiveUsers = function(config, since) {
     validateConfig(config);
 
     return fbSleep.getLastActiveTimes(config)
@@ -51,9 +51,8 @@ fbSleep.getRecentlyActiveUsers = function(config, timeSinceLastCheck) {
             return _(lastActiveTimes)
                 .pairs()
                 .filter(function(user) {
-                    var lastActive = user[1];
-                    var timeSinceActive = Date.now() - lastActive * 1000;
-                    return timeSinceActive <= timeSinceLastCheck;
+                    var lastActive = user[1] * 1000;
+                    return lastActive >= since;
                 })
                 .map(function(user) {
                     return {
