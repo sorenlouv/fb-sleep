@@ -5,12 +5,12 @@ var fbSleep = {};
 function getCookieJar(config, domain) {
     var jar = request.jar();
     jar.setCookie(
-        request.cookie('c_user=' + config.c_user),
+        request.cookie('c_user=' + _.trim(config.c_user)),
         domain
     );
 
     jar.setCookie(
-        request.cookie('xs=' + config.xs),
+        request.cookie('xs=' + _.trim(config.xs)),
         domain
     );
 
