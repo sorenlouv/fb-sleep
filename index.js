@@ -110,7 +110,7 @@ fbSleep.fetchActiveUsers = function(config) {
         });
 };
 
-fbSleep.getRecentlyActiveUsers = function(config, since) {
+fbSleep.getRecentlyActiveUsers = function(config) {
     validateConfig(config);
 
     return fbSleep.getBuddyList(config)
@@ -119,10 +119,10 @@ fbSleep.getRecentlyActiveUsers = function(config, since) {
                 throw new Error('No users found');
             }
 
-            return formatUsers(users, since);
+            return users;
         })
 
-        // Fallback to other way of retriving users
+        // Fallback to other ways of retriving users
         .catch(function(e) {
             console.log('An error occured in buddyList', e);
             var activeUsersRequest = fbSleep.fetchActiveUsers(config);
@@ -130,26 +130,9 @@ fbSleep.getRecentlyActiveUsers = function(config, since) {
 
             return Bluebird.all([activeUsersRequest, lastActiveTimesRequest])
                .spread(function(activeUsers, lastActiveTimes) {
-                   var users = _.merge(activeUsers, lastActiveTimes);
-
-                   return formatUsers(users, since);
+                   return _.merge(activeUsers, lastActiveTimes);
                });
         });
 };
-
-function formatUsers(users, since) {
-    return _(users)
-        .toPairs()
-        .map(function(user) {
-            return {
-                userId: user[0],
-                timestamp: user[1] * 1000
-            };
-        })
-        .filter(function(user) {
-            return user.timestamp >= since;
-        })
-        .value();
-}
 
 module.exports = fbSleep;
