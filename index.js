@@ -110,7 +110,7 @@ fbSleep.fetchActiveUsers = function(config) {
         });
 };
 
-fbSleep.getRecentlyActiveUsers = function(config) {
+fbSleep.getUsers = function(config) {
     validateConfig(config);
 
     return fbSleep.getBuddyList(config)
