@@ -41,8 +41,7 @@ fbSleep.getLastActiveTimes = function(config) {
     });
 };
 
-// curl 'https://5-edge-chat.facebook.com/pull?channel=p_<user_id>&seq=1&partition=-2&cb=jeih&idle=1&qp=y&cap=8&pws=fresh&isq=57540&msgs_recv=0&uid=<user_id>&viewer_uid=<user_id>&sticky_token=93&sticky_pool=frc3c09_chat-proxy&state=active' -H 'Cookie: c_user=<user_id>;xs=<xs>;'
-fbSleep.getBuddyList = function(config) {
+function getLoadBalancerInfo(config) {
     return request({
         url: 'https://5-edge-chat.facebook.com/pull',
         jar: getCookieJar(config, 'https://5-edge-chat.facebook.com'),
@@ -59,8 +58,6 @@ fbSleep.getBuddyList = function(config) {
             msgs_recv: 0,
             uid: config.c_user,
             viewer_uid: config.c_user,
-            sticky_token: 93,
-            sticky_pool: 'frc3c09_chat-proxy',
             state: 'active'
         },
         gzip: true,
@@ -68,13 +65,52 @@ fbSleep.getBuddyList = function(config) {
             'User-Agent': 'curl/7.43.0'
         }
     })
-    .then(function(body) {
-        var buddyList = JSON.parse(body.replace('for (;;);', '')).ms[0].buddyList;
-        return _.reduce(buddyList, function(memo, user, userId) {
-            memo[userId] = user.lat;
-            return memo;
-        }, {});
+    .then(function(res) {
+        return parseFbResponse(res).lb_info;
     });
+}
+
+function parseFbResponse(response) {
+    return JSON.parse(response.replace('for (;;);', ''));
+}
+
+// curl 'https://5-edge-chat.facebook.com/pull?channel=p_<user_id>&seq=1&partition=-2&cb=jeih&idle=1&qp=y&cap=8&pws=fresh&isq=57540&msgs_recv=0&uid=<user_id>&viewer_uid=<user_id>&sticky_token=93&sticky_pool=frc3c09_chat-proxy&state=active' -H 'Cookie: c_user=<user_id>;xs=<xs>;'
+fbSleep.getBuddyList = function(config) {
+    return getLoadBalancerInfo(config)
+        .then(function(lbInfo) {
+            return request({
+                url: 'https://5-edge-chat.facebook.com/pull',
+                jar: getCookieJar(config, 'https://5-edge-chat.facebook.com'),
+                qs: {
+                    channel: 'p_' + config.c_user,
+                    seq: 1,
+                    partition: -2,
+                    cb: 'jeih',
+                    idle: 1,
+                    qp: 'y',
+                    cap: 8,
+                    pws: 'fresh',
+                    isq: 57540,
+                    msgs_recv: 0,
+                    uid: config.c_user,
+                    viewer_uid: config.c_user,
+                    state: 'active',
+                    sticky_token: lbInfo.sticky,
+                    sticky_pool: lbInfo.pool
+                },
+                gzip: true,
+                headers: {
+                    'User-Agent': 'curl/7.43.0'
+                }
+            });
+        })
+        .then(function(res) {
+            var buddyList = parseFbResponse(res).ms[0].buddyList;
+            return _.reduce(buddyList, function(memo, user, userId) {
+                memo[userId] = user.lat;
+                return memo;
+            }, {});
+        });
 };
 
 // curl 'https://m.facebook.com/buddylist.php' -H 'cookie: c_user=<c_user>; xs=<xs>;'
@@ -115,7 +151,7 @@ fbSleep.getUsers = function(config) {
 
     return fbSleep.getBuddyList(config)
         .then(function(users) {
-            if (users.length === 0) {
+            if (_.size(users) === 0) {
                 throw new Error('No users found');
             }
 
