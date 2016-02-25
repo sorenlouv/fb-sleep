@@ -1,5 +1,7 @@
+var Bluebird = require('bluebird');
 var request = require('request-promise');
 var _ = require('lodash');
+var cheerio = require('cheerio');
 var fbSleep = {};
 
 function getCookieJar(config, domain) {
@@ -23,11 +25,8 @@ function validateConfig(config) {
     }
 }
 
-// debugging
 // curl 'https://www.messenger.com/' -H 'cookie: c_user=1234; xs=6789;'
 fbSleep.getLastActiveTimes = function(config) {
-    validateConfig(config);
-
     return request({
         url: 'https://www.messenger.com',
         jar: getCookieJar(config, 'https://www.messenger.com'),
@@ -43,22 +42,59 @@ fbSleep.getLastActiveTimes = function(config) {
     });
 };
 
+// curl 'https://m.facebook.com/buddylist.php' -H 'cookie: c_user=<c_user>; xs=<xs>;'
+fbSleep.fetchActiveUsers = function(config) {
+    return request({
+            url: 'https://m.facebook.com/buddylist.php',
+            jar: getCookieJar(config, 'https://m.facebook.com'),
+            gzip: true,
+            headers: {
+                'User-Agent': 'curl/7.43.0'
+            }
+        })
+        .then(function(body) {
+            var AWAY_ICON = 'https://static.xx.fbcdn.net/rsrc.php/v2/yX/r/FSqa1Nyk3nd.png';
+            var $ = cheerio.load(body);
+            var elements = $('.l.br.bs');
+            var activeUsers = elements
+                .filter(function() {
+                    return $(this).find('img').attr('src') !== AWAY_ICON;
+                })
+                .map(function() {
+                    var href = $(this).find('a').attr('href');
+                    return /fbid=(\d+)/g.exec(href)[1];
+                })
+                .toArray();
+
+            return _(activeUsers)
+                .map(function(userId) {
+                    return [userId, Date.now()/1000];
+                })
+                .fromPairs()
+                .value();
+        });
+};
+
 fbSleep.getRecentlyActiveUsers = function(config, since) {
     validateConfig(config);
 
-    return fbSleep.getLastActiveTimes(config)
-        .then(function(lastActiveTimes) {
-            return _(lastActiveTimes)
-                .pairs()
-                .filter(function(user) {
-                    var lastActive = user[1] * 1000;
-                    return lastActive >= since;
-                })
+    var activeUsersRequest = fbSleep.fetchActiveUsers(config);
+    var lastActiveTimesRequest = fbSleep.getLastActiveTimes(config);
+
+    return Bluebird.all([activeUsersRequest, lastActiveTimesRequest])
+        .spread(function(activeUsers, lastActiveTimes) {
+            var users = _.merge(activeUsers, lastActiveTimes);
+
+            return _(users)
+                .toPairs()
                 .map(function(user) {
                     return {
                         userId: user[0],
                         timestamp: user[1] * 1000
                     };
+                })
+                .filter(function(user) {
+                    return user.timestamp >= since;
                 })
                 .value();
         });
