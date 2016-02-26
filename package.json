@@ -1,6 +1,6 @@
 {
   "name": "fb-sleep",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "main": "index.js",
   "scripts": {
     "debug": "node-debug --no-preload ./example.js"
