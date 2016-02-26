@@ -160,7 +160,7 @@ fbSleep.getUsers = function(config) {
 
         // Fallback to other ways of retriving users
         .catch(function(e) {
-            console.log('An error occured in buddyList', e);
+            console.error('Error getting buddyList. Will fallback to other means of retrieving friends', e);
             var activeUsersRequest = fbSleep.fetchActiveUsers(config);
             var lastActiveTimesRequest = fbSleep.getLastActiveTimes(config);
 
@@ -168,6 +168,10 @@ fbSleep.getUsers = function(config) {
                .spread(function(activeUsers, lastActiveTimes) {
                    return _.merge(activeUsers, lastActiveTimes);
                });
+        })
+        .catch(function(e) {
+            console.error(e.stack);
+            throw new Error('Could not retrieve Facebook users');
         });
 };
 
