@@ -46,6 +46,7 @@ function getLoadBalancerInfo(config) {
         url: 'https://5-edge-chat.facebook.com/pull',
         jar: getCookieJar(config, 'https://5-edge-chat.facebook.com'),
         qs: {
+            clientid: 0,
             channel: 'p_' + config.c_user,
             seq: 1,
             partition: -2,
@@ -82,6 +83,7 @@ fbSleep.getBuddyList = function(config) {
                 url: 'https://5-edge-chat.facebook.com/pull',
                 jar: getCookieJar(config, 'https://5-edge-chat.facebook.com'),
                 qs: {
+                    clientid: 0,
                     channel: 'p_' + config.c_user,
                     seq: 1,
                     partition: -2,
