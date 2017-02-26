@@ -150,30 +150,11 @@ fbSleep.fetchActiveUsers = function(config) {
 
 fbSleep.getUsers = function(config) {
     validateConfig(config);
-
-    return fbSleep.getBuddyList(config)
-        .then(function(users) {
-            if (_.size(users) === 0) {
-                throw new Error('No users found');
-            }
-
-            return users;
-        })
-
-        // Fallback to other ways of retriving users
-        .catch(function(e) {
-            console.error('Error getting buddyList. Will fallback to other means of retrieving friends', e);
-            var activeUsersRequest = fbSleep.fetchActiveUsers(config);
-            var lastActiveTimesRequest = fbSleep.getLastActiveTimes(config);
-
-            return Bluebird.all([activeUsersRequest, lastActiveTimesRequest])
-               .spread(function(activeUsers, lastActiveTimes) {
-                   return _.merge(activeUsers, lastActiveTimes);
-               });
-        })
-        .catch(function(e) {
-            console.error(e.stack);
-            throw new Error('Could not retrieve Facebook users');
+    var activeUsersRequest = fbSleep.fetchActiveUsers(config);
+    var lastActiveTimesRequest = fbSleep.getLastActiveTimes(config);
+    return Bluebird.all([activeUsersRequest, lastActiveTimesRequest])
+        .spread(function(activeUsers, lastActiveTimes) {
+            return _.merge(activeUsers, lastActiveTimes);
         });
 };
 
